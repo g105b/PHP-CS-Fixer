@@ -89,7 +89,7 @@ Then, just run ``php-cs-fixer``.
 Globally (Composer)
 ~~~~~~~~~~~~~~~~~~~
 
-To install PHP-CS-Fixer, install Composer and issue the following command:
+To install PHP CS Fixer, install Composer and issue the following command:
 
 .. code-block:: bash
 

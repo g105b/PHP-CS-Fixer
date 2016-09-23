@@ -1,13 +1,13 @@
-Cookbook - Making a new Fixer for PHP CS Fixer
+Cookbook - Making a new Fixer for PHP-CS-Fixer
 ==============================================
 
-You want to make a new fixer to PHP CS Fixer and do not know how to
+You want to make a new fixer to PHP-CS-Fixer and do not know how to
 start. Follow this document and you will be able to do it.
 
 ## Background
 
 In order to be able to create a new fixer, you need some background.
-PHP CS Fixer is a transcompiler which takes valid PHP code and pretty
+PHP-CS-Fixer is a transcompiler which takes valid PHP code and pretty
 print valid PHP code. It does all transformations in multiple passes,
 a.k.a., multi-pass compiler.
 
@@ -21,8 +21,8 @@ contribute, and to detect bugs ([Linus'
 Law](http://en.wikipedia.org/wiki/Linus%27s_Law)).
 
 If possible, try to get acquainted with the public interface for the
-[Symfony/CS/Tokenizer/Tokens.php](Symfony/CS/Tokenizer/Tokens.php)
-and [Symfony/CS/Tokenizer/Token.php](Symfony/CS/Tokenizer/Token.php)
+[Tokens class](Symfony/CS/Tokenizer/Tokens.php)
+and [Token class](Symfony/CS/Tokenizer/Token.php)
 classes.
 
 ## Assumptions
@@ -30,9 +30,8 @@ classes.
 * You are familiar with Test Driven Development.
 * Forked FriendsOfPHP/PHP-CS-Fixer into your own Github Account.
 * Cloned your forked repository locally.
-* Downloaded PHP CS Fixer and have executed `php composer.phar
-install`.
-* You have read [`CONTRIBUTING.md`](CONTRIBUTING.md)
+* Installed the dependencies of PHP CS Fixer using [Composer](https://getcomposer.org/).
+* You have read [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Step by step
 
@@ -72,7 +71,7 @@ final class RemoveCommentsFixer extends AbstractFixer
      */
     public function fix(\SplFileInfo $file, $content)
     {
-        // TODO.
+        // Add the fixing logic of the fixer here.
     }
 
     /**
@@ -80,9 +79,8 @@ final class RemoveCommentsFixer extends AbstractFixer
      */
     public function getDescription()
     {
-        // TODO.
+        // Return a short description of the Fixer, it will be used in the README.rst.
     }
-
 }
 ```
 
@@ -132,10 +130,10 @@ final class RemoveCommentsFixerTest extends AbstractFixerTestBase
 ```
 
 The files are created, one thing is still missing though: we need to
-update the README.md. Fortunately, PHP CS Fixer can help you here.
+update the README.md. Fortunately, PHP-CS-Fixer can help you here.
 Execute the following command in your command shell:
 
-`# php php-cs-fixer readme > README.rst`
+`$ php php-cs-fixer readme > README.rst`
 
 ### Step 2 - Using tests to define fixers behavior
 
@@ -258,13 +256,14 @@ final class RemoveCommentsFixer extends AbstractFixer
 }
 ```
 
-Run `vendor/bin/phpunit`. You are going to see that the tests fails.
+Run `$ phpunit Symfony/CS/Tests/Fixer/Contrib/RemoveCommentsFixerTest.php`.
+You are going to see that the tests fails.
 
 ### Break
 Now we have pretty much a cradle to work with. A file with a failing
 test, and the fixer, that for now does not do anything.
 
-How do fixers work? In the PHP CS Fixer, they work by iterating through
+How do fixers work? In the PHP-CS-Fixer, they work by iterating through
 pieces of codes (each being a Token), and inspecting what exists before
 and after that bit and making a decision, usually:
 
@@ -280,7 +279,7 @@ Now you need to do some reading, because all these symbols obey a list
 defined by the PHP compiler. It is the ["List of Parser
 Tokens"](http://php.net/manual/en/tokens.php).
 
-Internally, PHP CS Fixer transforms some of PHP native tokens into custom
+Internally, PHP-CS-Fixer transforms some of PHP native tokens into custom
 tokens through the use of [Transfomers](Symfony/CS/Tokenizer/Transformer),
 they aim to help you reason about the changes you may want to do in the
 fixers.
@@ -393,7 +392,7 @@ final class RemoveCommentsFixer extends AbstractFixer {
 ### Step 4 - Format, Commit, PR.
 
 Note that so far, we have not coded adhering to PSR-1/2. This is done on
-purpose. For every commit you make, you must use PHP CS Fixer to fix
+purpose. For every commit you make, you must use PHP-CS-Fixer to fix
 itself. Thus, on the command line call:
 
 `$ php php-cs-fixer fix`
@@ -408,7 +407,7 @@ Now, go to Github and open a Pull Request.
 ### Step 5 - Peer review: it is all about code and community building.
 
 Congratulations, you have made your first fixer. Be proud. Your work
-will be reviewed carefully by PHP CS Fixer community.
+will be reviewed carefully by PHP-CS-Fixer community.
 
 The review usually flows like this:
 
@@ -439,19 +438,19 @@ Your fixer will be incorporated in the next release.
 
 #### Why is not my PR merged yet?
 
-PHP CS Fixer is used by many people, that expect it to be stable. So
+PHP-CS-Fixer is used by many people, that expect it to be stable. So
 sometimes, few PR are delayed a bit so to avoid cluttering at @dev
 channel on composer.
 
 Other possibility is that reviewers are giving time to other members of
-PHP CS Fixer community to partake on the review debates of your fixer.
+PHP-CS-Fixer community to partake on the review debates of your fixer.
 
 In any case, we care a lot about what you do and we want to see it being
 part of the application as soon as possible.
 
 #### May I use short arrays (`$a = []`)?
 
-No. Short arrays were introduced in PHP 5.4 and PHP CS Fixer still
+No. Short arrays were introduced in PHP 5.4 and PHP-CS-Fixer still
 supports PHP 5.3.6.
 
 #### Why are you steering me to create my fixer at CONTRIB_LEVEL ?
