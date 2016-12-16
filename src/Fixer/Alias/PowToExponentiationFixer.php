@@ -13,6 +13,9 @@
 namespace PhpCsFixer\Fixer\Alias;
 
 use PhpCsFixer\AbstractFunctionReferenceFixer;
+use PhpCsFixer\FixerDefinition\FixerDefinition;
+use PhpCsFixer\FixerDefinition\VersionSpecification;
+use PhpCsFixer\FixerDefinition\VersionSpecificCodeSample;
 use PhpCsFixer\Tokenizer\CT;
 use PhpCsFixer\Tokenizer\Token;
 use PhpCsFixer\Tokenizer\Tokens;
@@ -28,7 +31,7 @@ final class PowToExponentiationFixer extends AbstractFunctionReferenceFixer
     public function isCandidate(Tokens $tokens)
     {
         // minimal candidate to fix is seven tokens: pow(x,x);
-        return PHP_VERSION_ID > 50600 && $tokens->count() > 7 && $tokens->isTokenKindFound(T_STRING);
+        return PHP_VERSION_ID >= 50600 && $tokens->count() > 7 && $tokens->isTokenKindFound(T_STRING);
     }
 
     /**
@@ -70,6 +73,26 @@ final class PowToExponentiationFixer extends AbstractFunctionReferenceFixer
     /**
      * {@inheritdoc}
      */
+    public function getDefinition()
+    {
+        return new FixerDefinition(
+           'Converts `pow()` to the `**` operator. Requires PHP >= 5.6.',
+            array(
+                new VersionSpecificCodeSample(
+                    "<?php\n pow(\$a, 1);",
+                    new VersionSpecification(50600)
+                ),
+            ),
+            null,
+            null,
+            null,
+            'Risky when the function `pow()` is overridden.'
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getPriority()
     {
         // must be run before BinaryOperatorSpacesFixer
@@ -79,9 +102,9 @@ final class PowToExponentiationFixer extends AbstractFunctionReferenceFixer
     /**
      * {@inheritdoc}
      */
-    protected function getDescription()
+    public function isRisky()
     {
-        return 'Converts \'pow()\' to \'**\'.';
+        return true;
     }
 
     /**

@@ -15,6 +15,8 @@ namespace PhpCsFixer\Fixer\Alias;
 use PhpCsFixer\AbstractFixer;
 use PhpCsFixer\ConfigurationException\InvalidFixerConfigurationException;
 use PhpCsFixer\Fixer\ConfigurableFixerInterface;
+use PhpCsFixer\FixerDefinition\CodeSample;
+use PhpCsFixer\FixerDefinition\FixerDefinition;
 use PhpCsFixer\Tokenizer\CT;
 use PhpCsFixer\Tokenizer\Tokens;
 
@@ -71,17 +73,18 @@ final class NoMixedEchoPrintFixer extends AbstractFixer implements ConfigurableF
     /**
      * {@inheritdoc}
      */
-    public function isCandidate(Tokens $tokens)
+    public function getDefinition()
     {
-        return $tokens->isTokenKindFound($this->candidateTokenType);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getDescription()
-    {
-        return 'Either language construct `print` or `echo` should be used.';
+        return new FixerDefinition(
+            'Either language construct `print` or `echo` should be used.',
+            array(
+                new CodeSample('<?php print \'example\';'),
+                new CodeSample('<?php echo(\'example\');', array('use' => 'print')),
+            ),
+            null,
+            "The fixer can be configured to change `print` to `echo` `['use' => 'echo']` or `echo` to `print` `['use' => 'print']`.",
+            self::$defaultConfig
+        );
     }
 
     /**
@@ -91,6 +94,14 @@ final class NoMixedEchoPrintFixer extends AbstractFixer implements ConfigurableF
     {
         // should run after NoShortEchoTagFixer.
         return -10;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isCandidate(Tokens $tokens)
+    {
+        return $tokens->isTokenKindFound($this->candidateTokenType);
     }
 
     /**

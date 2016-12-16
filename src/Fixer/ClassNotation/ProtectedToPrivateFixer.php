@@ -13,6 +13,8 @@
 namespace PhpCsFixer\Fixer\ClassNotation;
 
 use PhpCsFixer\AbstractFixer;
+use PhpCsFixer\FixerDefinition\CodeSample;
+use PhpCsFixer\FixerDefinition\FixerDefinition;
 use PhpCsFixer\Tokenizer\CT;
 use PhpCsFixer\Tokenizer\Token;
 use PhpCsFixer\Tokenizer\Tokens;
@@ -23,14 +25,6 @@ use PhpCsFixer\Tokenizer\Tokens;
  */
 final class ProtectedToPrivateFixer extends AbstractFixer
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function isCandidate(Tokens $tokens)
-    {
-        return $tokens->isAnyTokenKindsFound(Token::getClassyTokenKinds());
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -46,11 +40,35 @@ final class ProtectedToPrivateFixer extends AbstractFixer
             $classClose = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_CURLY_BRACE, $classOpen);
 
             if (!$this->skipClass($tokens, $index, $classOpen, $classClose)) {
-                $this->fixClass($tokens, $index, $classOpen, $classClose);
+                $this->fixClass($tokens, $classOpen, $classClose);
             }
 
             $index = $classClose;
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDefinition()
+    {
+        return new FixerDefinition(
+            'Converts protected variables and methods to private where possible.',
+            array(
+                new CodeSample(
+                '<?php
+final class Sample
+{
+    protected $a;
+    
+    protected function test()
+    {
+    }
+}
+'
+                ),
+            )
+        );
     }
 
     public function getPriority()
@@ -62,18 +80,17 @@ final class ProtectedToPrivateFixer extends AbstractFixer
     /**
      * {@inheritdoc}
      */
-    protected function getDescription()
+    public function isCandidate(Tokens $tokens)
     {
-        return 'Converts protected variables and methods to private where possible.';
+        return $tokens->isAnyTokenKindsFound(Token::getClassyTokenKinds());
     }
 
     /**
      * @param Tokens $tokens
-     * @param int    $classIndex
      * @param int    $classOpenIndex
      * @param int    $classCloseIndex
      */
-    private function fixClass(Tokens $tokens, $classIndex, $classOpenIndex, $classCloseIndex)
+    private function fixClass(Tokens $tokens, $classOpenIndex, $classCloseIndex)
     {
         for ($index = $classOpenIndex + 1; $index < $classCloseIndex; ++$index) {
             if ($tokens[$index]->equals('{')) {

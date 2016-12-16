@@ -16,9 +16,11 @@ use PhpCsFixer\Fixer\ConfigurableFixerInterface;
 use PhpCsFixer\Fixer\DefinedFixerInterface;
 use PhpCsFixer\Fixer\FixerInterface;
 use PhpCsFixer\FixerDefinition\ShortFixerDefinition;
+use PhpCsFixer\FixerDefinition\VersionSpecificCodeSampleInterface;
 use PhpCsFixer\FixerFactory;
 use PhpCsFixer\RuleSet;
-use Prophecy\Argument;
+use PhpCsFixer\StdinFileInfo;
+use PhpCsFixer\Tokenizer\Tokens;
 
 /**
  * @author Dariusz Rumiński <dariusz.ruminski@gmail.com>
@@ -35,12 +37,13 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($factory, $testInstance);
 
         $testInstance = $factory->registerCustomFixers(
-            array($this->createFixerDouble('f1'), $this->createFixerDouble('f2'))
+            array($this->createFixerDouble('Foo/f1'), $this->createFixerDouble('Foo/f2'))
         );
         $this->assertSame($factory, $testInstance);
 
         $testInstance = $factory->registerFixer(
-            $this->createFixerDouble('f3')
+            $this->createFixerDouble('f3'),
+            false
         );
         $this->assertSame($factory, $testInstance);
 
@@ -88,7 +91,7 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
         );
 
         foreach ($fxs as $fx) {
-            $factory->registerFixer($fx);
+            $factory->registerFixer($fx, false);
         }
 
         // There are no rules that forces $fxs[1] to be prioritized before $fxs[3]. We should not test against that
@@ -105,10 +108,10 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
         $factory = new FixerFactory();
 
         $f1 = $this->createFixerDouble('f1');
-        $f2 = $this->createFixerDouble('f2');
-        $f3 = $this->createFixerDouble('f3');
+        $f2 = $this->createFixerDouble('Foo/f2');
+        $f3 = $this->createFixerDouble('Foo/f3');
 
-        $factory->registerFixer($f1);
+        $factory->registerFixer($f1, false);
         $factory->registerCustomFixers(array($f2, $f3));
 
         $this->assertTrue(in_array($f1, $factory->getFixers(), true));
@@ -118,17 +121,20 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers \PhpCsFixer\FixerFactory::registerFixer
-     * @expectedException        \UnexpectedValueException
-     * @expectedExceptionMessage Fixer named "non_unique_name" is already registered.
      */
     public function testRegisterFixerWithOccupiedName()
     {
+        $this->setExpectedException(
+                 'UnexpectedValueException',
+            'Fixer named "non_unique_name" is already registered.'
+        );
+
         $factory = new FixerFactory();
 
         $f1 = $this->createFixerDouble('non_unique_name');
         $f2 = $this->createFixerDouble('non_unique_name');
-        $factory->registerFixer($f1);
-        $factory->registerFixer($f2);
+        $factory->registerFixer($f1, false);
+        $factory->registerFixer($f2, false);
     }
 
     /**
@@ -153,11 +159,14 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers \PhpCsFixer\FixerFactory::useRuleSet
-     * @expectedException        \UnexpectedValueException
-     * @expectedExceptionMessage Rule "non_existing_rule" does not exist.
      */
     public function testUseRuleSetWithNonExistingRule()
     {
+        $this->setExpectedException(
+            'UnexpectedValueException',
+            'Rule "non_existing_rule" does not exist.'
+        );
+
         $factory = FixerFactory::create()
             ->registerBuiltInFixers()
             ->useRuleSet(new RuleSet(array('non_existing_rule' => true)))
@@ -282,9 +291,6 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
             array($fixers['no_useless_else'], $fixers['no_useless_return']), // tested also in: no_useless_else,no_useless_return.test
             array($fixers['no_useless_else'], $fixers['no_trailing_whitespace']), // tested also in: no_useless_else,no_trailing_whitespace.test
             array($fixers['no_useless_else'], $fixers['no_whitespace_in_blank_line']), // tested also in: no_useless_else,no_whitespace_in_blank_line.test
-            array($fixers['declare_strict_types'], $fixers['no_blank_lines_before_namespace']), // tested also in: declare_strict_types,no_blank_lines_before_namespace.test
-            array($fixers['declare_strict_types'], $fixers['no_extra_consecutive_blank_lines']), // tested also in: declare_strict_types,no_extra_consecutive_blank_lines.test
-            array($fixers['declare_strict_types'], $fixers['no_whitespace_in_blank_line']), // tested also in: declare_strict_types,no_whitespace_in_blank_line.test
             array($fixers['declare_strict_types'], $fixers['single_blank_line_before_namespace']), // tested also in: declare_strict_types,single_blank_line_before_namespace.test
             array($fixers['array_syntax'], $fixers['binary_operator_spaces']), // tested also in: array_syntax,binary_operator_spaces.test
             array($fixers['array_syntax'], $fixers['ternary_operator_spaces']), // tested also in: array_syntax,ternary_operator_spaces.test
@@ -334,14 +340,14 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
         $factory = new FixerFactory();
 
         $f1 = $this->createFixerDouble('f1');
-        $f2 = $this->createFixerDouble('f2');
-        $f3 = $this->createFixerDouble('f3');
-        $factory->registerFixer($f1);
+        $f2 = $this->createFixerDouble('Foo/f2');
+        $f3 = $this->createFixerDouble('Foo/f3');
+        $factory->registerFixer($f1, false);
         $factory->registerCustomFixers(array($f2, $f3));
 
         $this->assertTrue($factory->hasRule('f1'), 'Should have f1 fixer');
-        $this->assertTrue($factory->hasRule('f2'), 'Should have f2 fixer');
-        $this->assertTrue($factory->hasRule('f3'), 'Should have f3 fixer');
+        $this->assertTrue($factory->hasRule('Foo/f2'), 'Should have f2 fixer');
+        $this->assertTrue($factory->hasRule('Foo/f3'), 'Should have f3 fixer');
         $this->assertFalse($factory->hasRule('dummy'), 'Should not have dummy fixer');
     }
 
@@ -351,8 +357,8 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
 
         $f1 = $this->createFixerDouble('f1');
         $f2 = $this->createFixerDouble('f2');
-        $factory->registerFixer($f1);
-        $factory->registerFixer($f2);
+        $factory->registerFixer($f1, false);
+        $factory->registerFixer($f2, false);
 
         $this->assertTrue($factory->hasRule('f1'), 'Should have f1 fixer');
         $this->assertTrue($factory->hasRule('f2'), 'Should have f2 fixer');
@@ -371,24 +377,59 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertInstanceOf('PhpCsFixer\Fixer\DefinedFixerInterface', $fixer);
 
-        /** @var DefinedFixerInterface $fixer */
         $definition = $fixer->getDefinition();
 
-        $this->assertRegExp('/^[A-Z@].*\.$/', $definition->getSummary(), 'Description must start with capital letter or an @ and end with dot.');
+        $this->assertRegExp('/^[A-Z@].*\.$/', $definition->getSummary(), sprintf('[%s] Description must start with capital letter or an @ and end with dot.', $fixer->getName()));
 
         if ($definition instanceof ShortFixerDefinition) {
-            $this->markTestIncomplete('ShortFixerDefinition does not contains all needed information.');
+            $this->markTestIncomplete(sprintf('[%s] ShortFixerDefinition does not contains all needed information.', $fixer->getName()));
         }
 
-        $this->assertNotEmpty($definition->getCodeSamples(), 'Code samples are required.');
+        $samples = $definition->getCodeSamples();
+        $this->assertNotEmpty($samples, sprintf('[%s] Code samples are required.', $fixer->getName()));
+
+        $dummyFileInfo = new StdinFileInfo();
+        $sampleCounter = 0;
+        foreach ($samples as $sample) {
+            ++$sampleCounter;
+            $this->assertInstanceOf('PhpCsFixer\FixerDefinition\CodeSampleInterface', $sample, sprintf('[%s] Sample #%d', $fixer->getName(), $sampleCounter));
+            $code = $sample->getCode();
+            $this->assertStringIsNotEmpty($code, sprintf('[%s] Sample #%d', $fixer->getName(), $sampleCounter));
+
+            if ($sample instanceof VersionSpecificCodeSampleInterface && !$sample->isSuitableFor(PHP_VERSION_ID)) {
+                continue;
+            }
+
+            $config = $sample->getConfiguration();
+            if (null !== $config) {
+                $this->assertInternalType('array', $config, sprintf('[%s] Sample #%d configuration must be an array or null.', $fixer->getName(), $sampleCounter));
+                if ($fixer instanceof ConfigurableFixerInterface) {
+                    $fixer->configure($config);
+                } else {
+                    $this->assertInternalType('array', $config, sprintf('[%s] Sample #%d has configuration, but the fixer is not configurable.', $fixer->getName(), $sampleCounter));
+                }
+            }
+
+            Tokens::clearCache();
+            $tokens = Tokens::fromCode($code);
+            $fixer->fix($dummyFileInfo, $tokens);
+            $this->assertTrue($tokens->isChanged(), sprintf('[%s] Sample #%d is not changed during fixing.', $fixer->getName(), $sampleCounter));
+        }
 
         if ($fixer instanceof ConfigurableFixerInterface) {
-            $this->assertNotEmpty($definition->getConfigurationDescription(), 'Configuration description is required.');
-            $this->assertNotEmpty($definition->getDefaultConfiguration(), 'Default configuration is required.');
+            $this->assertStringIsNotEmpty($definition->getConfigurationDescription(), sprintf('[%s] Configuration description is required.', $fixer->getName()));
+            $default = $definition->getDefaultConfiguration();
+            $this->assertInternalType('array', $default, sprintf('[%s] Default configuration must be an array.', $fixer->getName()));
+            $this->assertNotEmpty('array', $default, sprintf('[%s] Default configuration is required.', $fixer->getName()));
+        } else {
+            $this->assertNull($definition->getConfigurationDescription(), sprintf('[%s] No configuration description expected.', $fixer->getName()));
+            $this->assertNull($definition->getDefaultConfiguration(), sprintf('[%s] No default configuration expected.', $fixer->getName()));
         }
 
         if ($fixer->isRisky()) {
-            $this->assertNotEmpty($definition->getRiskyDescription(), 'Risky reasoning is required.');
+            $this->assertStringIsNotEmpty($definition->getRiskyDescription(), sprintf('[%s] Risky reasoning is required.', $fixer->getName()));
+        } else {
+            $this->assertNull($definition->getRiskyDescription(), sprintf('[%s] Fixer is not risky so no description of it expected.', $fixer->getName()));
         }
     }
 
@@ -425,7 +466,7 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testShortFixerDefinition()
     {
-        $guard = 126;
+        $guard = 53;
 
         $this->assertCount(
             $guard,
@@ -446,11 +487,14 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider provideConflictingFixersRules
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessageRegExp #^Rule contains conflicting fixers:\n#
      */
     public function testConflictingFixers(RuleSet $ruleSet)
     {
+        $this->setExpectedExceptionRegExp(
+            'UnexpectedValueException',
+            '#^Rule contains conflicting fixers:\n#'
+        );
+
         FixerFactory::create()->registerBuiltInFixers()->useRuleSet($ruleSet);
     }
 
@@ -502,5 +546,17 @@ final class FixerFactoryTest extends \PHPUnit_Framework_TestCase
         //$fixer->configure(Argument::is(null))->willReturn(null); Needed?
 
         return $fixer->reveal();
+    }
+
+    /**
+     * copy paste from GeckoPackages/GeckoPHPUnit StringsAssertTrait, to replace with Trait when possible.
+     *
+     * @param mixed $actual
+     * @param mixed $message
+     */
+    private static function assertStringIsNotEmpty($actual, $message = '')
+    {
+        self::assertThat($actual, new \PHPUnit_Framework_Constraint_IsType('string'), $message);
+        self::assertNotEmpty($actual, $message);
     }
 }
