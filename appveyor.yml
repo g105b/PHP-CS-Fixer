@@ -5,7 +5,7 @@ clone_folder: C:\projects\php-cs-fixer
 
 environment:
     matrix:
-        - php_ver: 5.6.3
+        - php_ver: 7.0.9
 
 cache:
     - '%APPDATA%\Composer'
@@ -27,7 +27,7 @@ install:
 
 before_test:
     - cd C:\projects\php-cs-fixer
-    - php C:\tools\composer.phar update --no-interaction
+    - php C:\tools\composer.phar update --no-interaction --no-progress --optimize-autoloader --prefer-stable --no-ansi
 
 test_script:
     - cd C:\projects\php-cs-fixer

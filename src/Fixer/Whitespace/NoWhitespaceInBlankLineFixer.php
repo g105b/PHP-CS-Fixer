@@ -1,0 +1,91 @@
+<?php
+
+/*
+ * This file is part of PHP CS Fixer.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *     Dariusz Rumiński <dariusz.ruminski@gmail.com>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace PhpCsFixer\Fixer\Whitespace;
+
+use PhpCsFixer\AbstractFixer;
+use PhpCsFixer\Fixer\WhitespacesAwareFixerInterface;
+use PhpCsFixer\FixerDefinition\CodeSample;
+use PhpCsFixer\FixerDefinition\FixerDefinition;
+use PhpCsFixer\Tokenizer\Tokens;
+
+/**
+ * @author Dariusz Rumiński <dariusz.ruminski@gmail.com>
+ */
+final class NoWhitespaceInBlankLineFixer extends AbstractFixer implements WhitespacesAwareFixerInterface
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function fix(\SplFileInfo $file, Tokens $tokens)
+    {
+        foreach ($tokens as $index => $token) {
+            if (!$token->isWhitespace()) {
+                continue;
+            }
+
+            $content = $token->getContent();
+            $lines = preg_split("/(\r\n|\n)/", $content);
+
+            if (
+                // fix T_WHITESPACES with at least 3 lines (eg `\n   \n`)
+                count($lines) > 2
+                // and T_WHITESPACES with at least 2 lines at the end of file
+                || (count($lines) > 1 && !isset($tokens[$index + 1]))
+            ) {
+                $lMax = count($lines) - 1;
+                if (!isset($tokens[$index + 1])) {
+                    ++$lMax;
+                }
+
+                $lStart = 1;
+                if (isset($tokens[$index - 1]) && $tokens[$index - 1]->isGivenKind(T_OPEN_TAG) && "\n" === substr($tokens[$index - 1]->getContent(), -1)) {
+                    $lStart = 0;
+                }
+
+                for ($l = $lStart; $l < $lMax; ++$l) {
+                    $lines[$l] = preg_replace('/^\h+$/', '', $lines[$l]);
+                }
+
+                $token->setContent(implode($this->whitespacesConfig->getLineEnding(), $lines));
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDefinition()
+    {
+        return new FixerDefinition(
+            'Remove trailing whitespace at the end of blank lines.',
+            array(new CodeSample("<?php\n\n      \n\$a = 1;"))
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPriority()
+    {
+        // should be run after the NoUselessReturnFixer, NoEmptyPhpdocFixer and NoUselessElseFixer.
+        return -19;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isCandidate(Tokens $tokens)
+    {
+        return true;
+    }
+}
